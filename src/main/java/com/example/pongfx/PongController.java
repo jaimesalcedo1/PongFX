@@ -19,7 +19,7 @@ public class PongController {
     private Rectangle player1, player2, rightWall, leftWall, topWall, topWall2, bottomWall, bottomWall2;
     private Circle ball;
     private Label score;
-    private Timeline player1Up, player1Down, player2Up, player2Down, ballMove;
+    private Timeline player1Up, player1Down, player2Up, player2Down, ballMoveRight, ballMoveLeft;
     private double velocity;
     
     public PongController(StackPane track, Rectangle player1, Rectangle player2, Rectangle rightWall,
@@ -63,6 +63,9 @@ public class PongController {
                 if(keyEvent.getCode() == KeyCode.DOWN){
                     player2Down.play();
                     player2Up.stop();
+                }
+                if(keyEvent.getCode() == KeyCode.SPACE){
+                    ballMoveRight.play();
                 }
             }
         });
@@ -109,10 +112,20 @@ public class PongController {
         }));
         player2Down.setCycleCount(Animation.INDEFINITE);
 
+        this.ballMoveRight = new Timeline(new KeyFrame(Duration.millis(10), t -> {
+            moveBallRight();
+        }));
+        ballMoveRight.setCycleCount(Animation.INDEFINITE);
+
+        this.ballMoveLeft = new Timeline(new KeyFrame(Duration.millis(10), t -> {
+            moveBallLeft();
+        }));
+        ballMoveLeft.setCycleCount(Animation.INDEFINITE);
+
         AnimationTimer animationTimer = new AnimationTimer() {
             @Override
             public void handle(long l) {
-                detectCollide(player1, player2, topWall, topWall2, bottomWall, bottomWall2);
+                detectCollide(player1, player2, topWall, topWall2, bottomWall, bottomWall2, ball);
             }
         };
         animationTimer.start();
@@ -134,27 +147,51 @@ public class PongController {
         player2.setTranslateY(player2.getTranslateY()+1);
     }
 
+    private void moveBallRight(){
+        ball.setTranslateX(ball.getTranslateX()+1);
+    }
+
+    private void moveBallLeft(){
+        ball.setTranslateX(ball.getTranslateX()-1);
+    }
+
     private void detectCollide(Rectangle player1, Rectangle player2, Rectangle topWall, Rectangle topWall2,
-                               Rectangle bottomWall, Rectangle bottomWall2) {
+                               Rectangle bottomWall, Rectangle bottomWall2, Circle ball) {
+
         if(player1.getBoundsInParent().intersects(topWall2.getBoundsInParent())) {
             player1Up.setRate(0);
         }else{
             player1Up.setRate(1);
         }
+
         if(player1.getBoundsInParent().intersects(bottomWall2.getBoundsInParent())) {
             player1Down.setRate(0);
         }else{
             player1Down.setRate(1);
         }
+
         if(player2.getBoundsInParent().intersects(topWall2.getBoundsInParent())) {
             player2Up.setRate(0);
         }else{
             player2Up.setRate(1);
         }
-        if(player2.getBoundsInParent().intersects(bottomWall2.getBoundsInParent())) {
+
+        if(player2.getBoundsInParent().intersects(bottomWall2.getBoundsInParent())){
             player2Down.setRate(0);
         }else{
             player2Down.setRate(1);
+        }
+
+        if(ball.getBoundsInParent().intersects(player2.getBoundsInParent())){
+            ballMoveRight.stop();
+            ballMoveLeft.play();
+            ballMoveLeft.setRate(ballMoveRight.getRate()+0.5);
+        }
+
+        if(ball.getBoundsInParent().intersects(player1.getBoundsInParent())){
+            ballMoveLeft.stop();
+            ballMoveRight.play();
+            ballMoveRight.setRate(ballMoveLeft.getRate()+0.5);
         }
     }
 }
