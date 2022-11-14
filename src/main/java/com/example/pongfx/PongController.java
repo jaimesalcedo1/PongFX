@@ -13,14 +13,19 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
+import java.util.Random;
+
 public class PongController {
 
     private StackPane track;
     private Rectangle player1, player2, rightWall, leftWall, topWall, topWall2, bottomWall, bottomWall2;
     private Circle ball;
     private Label score;
-    private Timeline player1Up, player1Down, player2Up, player2Down, ballMoveRight, ballMoveLeft;
-    private double velocity;
+    private int axisX, axisY, scoreP1, scoreP2;;
+    private Timeline player1Up, player1Down, player2Up, player2Down, ballMove;
+    private boolean game;
+    private double ballVelocity, playerVelocity;
+
     
     public PongController(StackPane track, Rectangle player1, Rectangle player2, Rectangle rightWall,
                           Rectangle leftWall, Rectangle topWall, Rectangle topWall2, Rectangle bottomWall,
@@ -36,7 +41,11 @@ public class PongController {
         this.bottomWall2 = bottomWall2;
         this.ball = ball;
         this.score = score;
-        this.velocity = 1;
+        this.ballVelocity = 1;
+        this.playerVelocity = 1;
+        this.axisX = random();
+        this.axisY = random();
+        this.game = false;
 
         initGame();
         initControlls();
@@ -64,8 +73,12 @@ public class PongController {
                     player2Down.play();
                     player2Up.stop();
                 }
-                if(keyEvent.getCode() == KeyCode.SPACE){
-                    ballMoveRight.play();
+                if(keyEvent.getCode() == KeyCode.ENTER){
+                    if(!game){
+                        startGame();
+                    }else{
+                        //restart();
+                    }
                 }
             }
         });
@@ -92,6 +105,14 @@ public class PongController {
 
     private void initGame() {
 
+        AnimationTimer animationTimer = new AnimationTimer() {
+            @Override
+            public void handle(long l) {
+                detectCollide(player1, player2, topWall, topWall2, bottomWall, bottomWall2, ball);
+            }
+        };
+        animationTimer.start();
+
         this.player1Up = new Timeline(new KeyFrame(Duration.millis(3), t -> {
             movePlayer1Up();
         }));
@@ -112,47 +133,52 @@ public class PongController {
         }));
         player2Down.setCycleCount(Animation.INDEFINITE);
 
-        this.ballMoveRight = new Timeline(new KeyFrame(Duration.millis(10), t -> {
-            moveBallRight();
+        this.ballMove = new Timeline(new KeyFrame(Duration.millis(10), t -> {
+            moveBall();
         }));
-        ballMoveRight.setCycleCount(Animation.INDEFINITE);
+        ballMove.setCycleCount(Animation.INDEFINITE);
 
-        this.ballMoveLeft = new Timeline(new KeyFrame(Duration.millis(10), t -> {
-            moveBallLeft();
-        }));
-        ballMoveLeft.setCycleCount(Animation.INDEFINITE);
+    }
 
-        AnimationTimer animationTimer = new AnimationTimer() {
-            @Override
-            public void handle(long l) {
-                detectCollide(player1, player2, topWall, topWall2, bottomWall, bottomWall2, ball);
-            }
-        };
-        animationTimer.start();
+    private void startGame(){
+        //startMusic();
+        game = true;
+        ballMove.play();
     }
 
     private void movePlayer1Up() {
-        player1.setTranslateY(player1.getTranslateY()-1);
+        player1.setTranslateY(player1.getTranslateY()-playerVelocity);
     }
 
     private void movePlayer1Down() {
-        player1.setTranslateY(player1.getTranslateY()+1);
+        player1.setTranslateY(player1.getTranslateY()+playerVelocity);
     }
 
     private void movePlayer2Up() {
-        player2.setTranslateY(player2.getTranslateY()-1);
+        player2.setTranslateY(player2.getTranslateY()-playerVelocity);
     }
 
     private void movePlayer2Down() {
-        player2.setTranslateY(player2.getTranslateY()+1);
+        player2.setTranslateY(player2.getTranslateY()+playerVelocity);
     }
 
-    private void moveBallRight(){
-        ball.setTranslateX(ball.getTranslateX()+1);
-    }
-
-    private void moveBallLeft(){
-        ball.setTranslateX(ball.getTranslateX()-1);
+    private void moveBall(){
+        if(axisX == 1 && axisY == -1){
+            ball.setTranslateX(ball.getTranslateX()+ballVelocity);
+            ball.setTranslateY(ball.getTranslateY()+ballVelocity);
+        }
+        if(axisX == -1 && axisY == -1){
+            ball.setTranslateX(ball.getTranslateX()-ballVelocity);
+            ball.setTranslateY(ball.getTranslateY()+ballVelocity);
+        }
+        if(axisX == 1 && axisY == 1){
+            ball.setTranslateX(ball.getTranslateX()+ballVelocity);
+            ball.setTranslateY(ball.getTranslateY()-ballVelocity);
+        }
+        if(axisX == -1 && axisY == 1){
+            ball.setTranslateX(ball.getTranslateX()-ballVelocity);
+            ball.setTranslateY(ball.getTranslateY()-ballVelocity);
+        }
     }
 
     private void detectCollide(Rectangle player1, Rectangle player2, Rectangle topWall, Rectangle topWall2,
@@ -182,16 +208,42 @@ public class PongController {
             player2Down.setRate(1);
         }
 
-        if(ball.getBoundsInParent().intersects(player2.getBoundsInParent())){
-            ballMoveRight.stop();
-            ballMoveLeft.play();
-            ballMoveLeft.setRate(ballMoveRight.getRate()+0.5);
+        if(ball.getBoundsInParent().intersects(topWall.getBoundsInParent())){
+            axisY = -1;
+        }
+
+        if(ball.getBoundsInParent().intersects(bottomWall.getBoundsInParent())){
+            axisY = 1;
         }
 
         if(ball.getBoundsInParent().intersects(player1.getBoundsInParent())){
-            ballMoveLeft.stop();
-            ballMoveRight.play();
-            ballMoveRight.setRate(ballMoveLeft.getRate()+0.5);
+            axisX = 1;
+            ballVelocity = ballVelocity + 0.05;
+        }
+
+        if(ball.getBoundsInParent().intersects(player2.getBoundsInParent())){
+            axisX = -1;
+            ballVelocity = ballVelocity + 0.05;
+        }
+
+        if(ball.getBoundsInParent().intersects(leftWall.getBoundsInParent())){
+            ball.setTranslateX(0);
+            ball.setTranslateY(0);
+        }
+
+        if(ball.getBoundsInParent().intersects(rightWall.getBoundsInParent())){
+            ball.setTranslateX(0);
+            ball.setTranslateY(0);
+        }
+
+    }
+
+    private int random(){
+        int number = new Random().nextInt(2);
+        if(number == 0){
+            return -1;
+        }else{
+            return 1;
         }
     }
 }
