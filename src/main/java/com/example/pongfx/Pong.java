@@ -8,6 +8,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 
+import java.io.File;
+
 public class Pong extends BorderPane {
 
     private StackPane track;
@@ -29,7 +31,7 @@ public class Pong extends BorderPane {
         this.bottomWall2 = new Rectangle();
         this.centerLine = new Rectangle();
         this.ball = new Circle();
-        this.score = new Label();
+        this.score = new Label("0   0");
         this.controller = new PongController(track, player1, player2, rightWall, leftWall, topWall, topWall2, bottomWall, bottomWall2, ball, score);
 
         initView();
@@ -75,8 +77,13 @@ public class Pong extends BorderPane {
         player2.widthProperty().bind(track.widthProperty().divide(100));
         player2.translateXProperty().bind(rightWall.translateXProperty().subtract(20));
         player2.setFill(Color.WHITE);
+        score.prefHeightProperty().bind(track.heightProperty().divide(60));
+        score.prefWidthProperty().bind(track.widthProperty().divide(20));
+        score.translateYProperty().bind(topWall.translateXProperty().add(5));
+        score.setAlignment(Pos.CENTER);
+        score.setTextFill(Color.WHITE);
 
-        track.getChildren().addAll(topWall2, bottomWall2, rightWall, leftWall, topWall, bottomWall, centerLine, ball, player1, player2);
+        track.getChildren().addAll(topWall2, bottomWall2, rightWall, leftWall, topWall, bottomWall, centerLine, ball, player1, player2, score);
         track.setAlignment(topWall2, Pos.TOP_CENTER);
         track.setAlignment(bottomWall2, Pos.BOTTOM_CENTER);
         track.setAlignment(rightWall, Pos.CENTER_RIGHT);
@@ -87,6 +94,8 @@ public class Pong extends BorderPane {
         track.setAlignment(ball, Pos.CENTER);
         track.setAlignment(player1, Pos.CENTER_LEFT);
         track.setAlignment(player2, Pos.CENTER_RIGHT);
+        track.setAlignment(score, Pos.TOP_CENTER);
+        track.setStyle("-fx-background-image: url(background.jpg)");
 
         this.setCenter(track);
         this.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);

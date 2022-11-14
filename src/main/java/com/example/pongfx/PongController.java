@@ -13,6 +13,10 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
+import javax.sound.sampled.*;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.Random;
 
 public class PongController {
@@ -26,6 +30,14 @@ public class PongController {
     private boolean game;
     private double ballVelocity, playerVelocity;
 
+    private AudioInputStream backgroundMusic;
+    private Clip trackBG;
+    private String collisionWav = System.getProperty("user.dir")+File.separator+"src"+File.separator+"main"+
+            File.separator+"resources"+File.separator+"collision.wav";
+    private String pointWav = System.getProperty("user.dir")+ File.separator+"src"+File.separator+"main"+
+            File.separator+"resources"+File.separator+"point.wav";
+    private String backgroundWav = System.getProperty("user.dir")+File.separator+"src"+File.separator+"main"+
+            File.separator+"resources"+File.separator+"background.wav";
     
     public PongController(StackPane track, Rectangle player1, Rectangle player2, Rectangle rightWall,
                           Rectangle leftWall, Rectangle topWall, Rectangle topWall2, Rectangle bottomWall,
@@ -41,6 +53,8 @@ public class PongController {
         this.bottomWall2 = bottomWall2;
         this.ball = ball;
         this.score = score;
+        this.scoreP1 = 0;
+        this.scoreP2 = 0;
         this.ballVelocity = 1;
         this.playerVelocity = 1;
         this.axisX = random();
@@ -75,9 +89,25 @@ public class PongController {
                 }
                 if(keyEvent.getCode() == KeyCode.ENTER){
                     if(!game){
-                        startGame();
+                        try {
+                            startGame();
+                        } catch (UnsupportedAudioFileException e) {
+                            e.printStackTrace();
+                        } catch (LineUnavailableException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }else{
-                        //restart();
+                        try {
+                            restartGame();
+                        } catch (UnsupportedAudioFileException e) {
+                            e.printStackTrace();
+                        } catch (LineUnavailableException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -108,7 +138,15 @@ public class PongController {
         AnimationTimer animationTimer = new AnimationTimer() {
             @Override
             public void handle(long l) {
-                detectCollide(player1, player2, topWall, topWall2, bottomWall, bottomWall2, ball);
+                try {
+                    detectCollision(player1, player2, topWall, topWall2, bottomWall, bottomWall2, ball);
+                } catch (UnsupportedAudioFileException e) {
+                    e.printStackTrace();
+                } catch (LineUnavailableException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         };
         animationTimer.start();
@@ -140,10 +178,20 @@ public class PongController {
 
     }
 
-    private void startGame(){
-        //startMusic();
+    private void startGame() throws UnsupportedAudioFileException, LineUnavailableException, IOException {
+        startMusic();
         game = true;
         ballMove.play();
+    }
+
+    private void restartGame() throws UnsupportedAudioFileException, LineUnavailableException, IOException {
+        trackBG.stop();
+        ball.setTranslateX(0);
+        ball.setTranslateY(0);
+        scoreP1 = 0;
+        scoreP2 = 0;
+        score.setText("0   0");
+        startGame();
     }
 
     private void movePlayer1Up() {
@@ -181,8 +229,8 @@ public class PongController {
         }
     }
 
-    private void detectCollide(Rectangle player1, Rectangle player2, Rectangle topWall, Rectangle topWall2,
-                               Rectangle bottomWall, Rectangle bottomWall2, Circle ball) {
+    private void detectCollision(Rectangle player1, Rectangle player2, Rectangle topWall, Rectangle topWall2,
+                                 Rectangle bottomWall, Rectangle bottomWall2, Circle ball) throws UnsupportedAudioFileException, LineUnavailableException, IOException {
 
         if(player1.getBoundsInParent().intersects(topWall2.getBoundsInParent())) {
             player1Up.setRate(0);
@@ -210,30 +258,40 @@ public class PongController {
 
         if(ball.getBoundsInParent().intersects(topWall.getBoundsInParent())){
             axisY = -1;
+            collisionSound();
         }
 
         if(ball.getBoundsInParent().intersects(bottomWall.getBoundsInParent())){
             axisY = 1;
+            collisionSound();
         }
 
         if(ball.getBoundsInParent().intersects(player1.getBoundsInParent())){
             axisX = 1;
             ballVelocity = ballVelocity + 0.05;
+            collisionSound();
         }
 
         if(ball.getBoundsInParent().intersects(player2.getBoundsInParent())){
             axisX = -1;
             ballVelocity = ballVelocity + 0.05;
+            collisionSound();
         }
 
         if(ball.getBoundsInParent().intersects(leftWall.getBoundsInParent())){
             ball.setTranslateX(0);
             ball.setTranslateY(0);
+            pointSound();
+            scoreP2 = scoreP2 + 1;
+            score.setText(scoreP1+"   "+scoreP2);
         }
 
         if(ball.getBoundsInParent().intersects(rightWall.getBoundsInParent())){
             ball.setTranslateX(0);
             ball.setTranslateY(0);
+            pointSound();
+            scoreP1 = scoreP1 + 1;
+            score.setText(scoreP1+"   "+scoreP2);
         }
 
     }
@@ -246,4 +304,25 @@ public class PongController {
             return 1;
         }
     }
+
+    private void startMusic() throws LineUnavailableException, UnsupportedAudioFileException, IOException {
+        backgroundMusic = AudioSystem.getAudioInputStream(new File(backgroundWav).getAbsoluteFile());
+        trackBG = AudioSystem.getClip();
+        trackBG.open(backgroundMusic);
+        trackBG.start();
+    }
+    private void pointSound() throws LineUnavailableException, UnsupportedAudioFileException, IOException {
+        AudioInputStream ais = AudioSystem.getAudioInputStream(new File(pointWav).getAbsoluteFile());
+        Clip track = AudioSystem.getClip();
+        track.open(ais);
+        track.start();
+    }
+
+    private void collisionSound() throws LineUnavailableException, UnsupportedAudioFileException, IOException {
+        AudioInputStream ais = AudioSystem.getAudioInputStream(new File(collisionWav).getAbsoluteFile());
+        Clip track = AudioSystem.getClip();
+        track.open(ais);
+        track.start();
+    }
+
 }
